@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: routely
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/routely}
+    username: ${SPRING_DATASOURCE_USERNAME:routely}
+    password: ${SPRING_DATASOURCE_PASSWORD:routely}
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+  mvc:
+    problemdetails:
+      enabled: true
+  flyway:
+    enabled: true
+
+routely:
+  security:
+    jwt-secret: ${ROUTELY_JWT_SECRET:routely-dev-only-secret-key-change-me-0123456789abcdef0123456789}
