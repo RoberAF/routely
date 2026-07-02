@@ -112,6 +112,19 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<!-- TestRestTemplate lives here, not in spring-boot-test, as of Boot 4.1 -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-resttestclient</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<!-- RestTemplateBuilder, which TestRestTemplate needs, moved out of the
+			     web starters and into its own module in the same split. -->
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-restclient</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-testcontainers</artifactId>
 			<scope>test</scope>

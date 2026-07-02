@@ -8,7 +8,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-    open-in-view: false
+    # RoutePlan/RouteStop expose lazy associations (stops, stop.customer) that
+    # the read endpoints serialize straight from freshly loaded entities, with
+    # no @Transactional wrapping the controller. Keeping the session open for
+    # the view avoids a LazyInitializationException on GET /route-plans and
+    # GET /route-plans/{id}; the honest fix is an explicit fetch-join in the
+    # repository, but that's outside what this fix is scoped to touch.
+    open-in-view: true
   mvc:
     problemdetails:
       enabled: true
