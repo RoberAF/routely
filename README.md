@@ -127,21 +127,6 @@ Every other call below assumes `%TOKEN%` (or `%LAURA_TOKEN%`) holds that `access
 relevant account — `set TOKEN=...` in `cmd.exe`, `$env:TOKEN = "..."` in PowerShell, or
 `TOKEN=...` in bash.
 
-### Create a customer
-
-```bash
-curl.exe -s -i -X POST http://localhost:8080/api/v1/customers \
-  -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" \
-  -d "{\"name\":\"Test Shop\",\"address\":\"Test Address 1\",\"lat\":43.01,\"lng\":-7.55,\"priority\":\"NORMAL\"}"
-```
-
-```
-HTTP/1.1 201
-Location: /api/v1/customers/41
-
-{"id":41,"name":"Test Shop","address":"Test Address 1","lat":43.01,"lng":-7.55,"priority":"NORMAL","timeWindowOpen":null,"timeWindowClose":null,"active":true}
-```
-
 ### List customers (paged)
 
 ```bash
@@ -175,6 +160,21 @@ curl.exe -s "http://localhost:8080/api/v1/customers/nearby?lat=43.0121&lng=-7.55
 Returns exactly the three closest active Lugo customers, ordered by distance (ids 1, 2, 3 — the
 inactive kiosk, id 5, and everything 15+ km away never shows up here regardless of radius, and a
 missing/invalid token gets a `401 application/problem+json` instead of data).
+
+### Create a customer
+
+```bash
+curl.exe -s -i -X POST http://localhost:8080/api/v1/customers \
+  -H "Authorization: Bearer %TOKEN%" -H "Content-Type: application/json" \
+  -d "{\"name\":\"Test Shop\",\"address\":\"Test Address 1\",\"lat\":43.01,\"lng\":-7.55,\"priority\":\"NORMAL\"}"
+```
+
+```
+HTTP/1.1 201
+Location: /api/v1/customers/41
+
+{"id":41,"name":"Test Shop","address":"Test Address 1","lat":43.01,"lng":-7.55,"priority":"NORMAL","timeWindowOpen":null,"timeWindowClose":null,"active":true}
+```
 
 ### Compute a route plan
 
@@ -242,6 +242,13 @@ Laura (`repId=1`) can list and read her own plans and nobody else's; the same ru
 ```bash
 ./mvnw test        # unit tests only (fast, no Docker)
 ./mvnw verify       # unit + integration tests (spins up a real postgis/postgis container)
+```
+
+Windows (cmd/PowerShell), same targets via the bundled `.cmd` wrapper:
+
+```bat
+mvnw.cmd test
+mvnw.cmd verify
 ```
 
 `verify` needs Docker running locally (Testcontainers pulls `postgis/postgis:16-3.4` and starts it
