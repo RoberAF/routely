@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: routely
+      POSTGRES_USER: routely
+      POSTGRES_PASSWORD: routely
+    ports:
+      - "5432:5432"
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U routely"]
+      interval: 5s
+      retries: 10
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/routely
+      SPRING_DATASOURCE_USERNAME: routely
+      SPRING_DATASOURCE_PASSWORD: routely
+      SPRING_APPLICATION_JSON: '{"routely":{"security":{"jwt-secret":"compose-demo-secret-0123456789abcdef0123456789abcdef"}}}'
+
+volumes:
+  dbdata:
