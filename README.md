@@ -1,5 +1,7 @@
 # Routely
 
+*[English](README.md) · [Español](README.es.md)*
+
 Field-sales route planning for reps who are currently ordering their visits by gut feeling.
 
 [![CI](https://github.com/RoberAF/routely/actions/workflows/ci.yml/badge.svg)](https://github.com/RoberAF/routely/actions/workflows/ci.yml)
