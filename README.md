@@ -21,6 +21,22 @@ honest about what it is: a heuristic, not an exact solution.
 (iOS/Android, same author), is in development — it's the field rep's actual daily interface to
 this API.
 
+## Try it in your browser
+
+**[roberaf.github.io/routely](https://roberaf.github.io/routely/)** — a small Leaflet map over the
+same 40-customer Galicia dataset, with a TypeScript port of the nearest-neighbor + 2-opt optimizer
+(`web/src/optimizer.ts`). Pick a rep's home base, pick some customers (or just route everyone
+active), hit "compute route", and see the naive vs. optimized polylines side by side. It runs fully
+client-side — no backend, no database, just the same algorithm as the Java service.
+
+Locally:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
 ## Features
 
 - JWT-secured REST API (`ADMIN` / `MANAGER` / `REP` roles), stateless HS256 tokens

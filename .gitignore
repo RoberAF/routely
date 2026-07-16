@@ -34,3 +34,7 @@ build/
 
 ### Project ###
 *.log
+
+### Web demo ###
+web/node_modules/
+web/dist/
