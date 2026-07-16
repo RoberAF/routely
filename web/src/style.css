@@ -84,6 +84,13 @@ header.fg-header {
   background: var(--fg-surface);
 }
 
+.fg-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--fg-space-4);
+}
+
 header.fg-header h1 {
   font-family: var(--fg-font-display);
   font-size: 24px;
@@ -95,6 +102,39 @@ header.fg-header p {
   margin: 0;
   color: var(--fg-ink2);
   font-size: 14px;
+}
+
+.fg-lang-toggle {
+  display: flex;
+  gap: var(--fg-space-1);
+  flex-shrink: 0;
+  background: var(--fg-bg2);
+  border: 1px solid var(--fg-line);
+  border-radius: var(--fg-radius-pill);
+  padding: 3px;
+}
+
+.fg-lang-chip {
+  font-family: var(--fg-font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: var(--fg-space-2) var(--fg-space-3);
+  border: none;
+  border-radius: var(--fg-radius-pill);
+  background: transparent;
+  color: var(--fg-ink2);
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.fg-lang-chip:hover {
+  color: var(--fg-ink);
+}
+
+.fg-lang-chip.active {
+  background: var(--fg-ember);
+  color: #FFFFFF;
 }
 
 main.fg-main {

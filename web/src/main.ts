@@ -1,60 +1,71 @@
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './style.css';
-import { CUSTOMERS, SALES_REPS, type Customer } from './customers';
+import { CUSTOMERS, SALES_REPS, type Customer, type SalesRep } from './customers';
 import { optimizeRoute, type GeoPoint, type Visit } from './optimizer';
+import { detectInitialLang, messages, persistLang, type Lang } from './i18n';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
+let lang: Lang = detectInitialLang();
+
 app.innerHTML = `
   <header class="fg-header">
-    <h1>Routely — route optimizer demo</h1>
-    <p>Nearest-neighbor + 2-opt over the seeded Galicia dataset, running entirely in your browser.</p>
+    <div class="fg-header-row">
+      <div>
+        <h1 id="header-title"></h1>
+        <p id="header-subtitle"></p>
+      </div>
+      <div class="fg-lang-toggle" role="group">
+        <button type="button" class="fg-lang-chip" id="lang-en" data-lang="en">EN</button>
+        <button type="button" class="fg-lang-chip" id="lang-es" data-lang="es">ES</button>
+      </div>
+    </div>
   </header>
   <main class="fg-main">
     <section class="fg-panel">
       <div class="fg-field">
-        <label for="rep-select">Rep home base</label>
+        <label for="rep-select" id="rep-label"></label>
         <select id="rep-select"></select>
       </div>
 
       <div class="fg-checkbox-row">
         <input type="checkbox" id="all-active" checked />
-        <label for="all-active">All active customers</label>
+        <label for="all-active" id="all-active-label"></label>
       </div>
 
       <div class="fg-field">
-        <label for="customer-select">Customers (multi-select)</label>
+        <label for="customer-select" id="customers-label"></label>
         <select id="customer-select" multiple disabled></select>
       </div>
 
-      <button class="fg-button" id="compute-button" type="button">Compute route</button>
+      <button class="fg-button" id="compute-button" type="button"></button>
 
       <div class="fg-legend">
-        <div><span class="fg-legend-swatch naive"></span>Naive (input order)</div>
-        <div><span class="fg-legend-swatch optimized"></span>Optimized (NN + 2-opt)</div>
+        <div><span class="fg-legend-swatch naive"></span><span id="legend-naive-label"></span></div>
+        <div><span class="fg-legend-swatch optimized"></span><span id="legend-optimized-label"></span></div>
       </div>
 
       <div class="fg-stat-card" id="stat-card" style="display: none;">
-        <h2>Result</h2>
+        <h2 id="stat-title"></h2>
         <div class="fg-stat-row">
-          <span>Naive distance</span>
+          <span id="stat-naive-label"></span>
           <span class="fg-stat-value" id="stat-naive"></span>
         </div>
         <div class="fg-stat-row">
-          <span>Optimized distance</span>
+          <span id="stat-optimized-label"></span>
           <span class="fg-stat-value" id="stat-optimized"></span>
         </div>
         <div class="fg-stat-row fg-stat-highlight">
-          <span>Improvement</span>
+          <span id="stat-improvement-label"></span>
           <span class="fg-stat-value" id="stat-improvement"></span>
         </div>
         <div class="fg-stat-row">
-          <span>2-opt passes</span>
+          <span id="stat-passes-label"></span>
           <span class="fg-stat-value" id="stat-passes"></span>
         </div>
         <div class="fg-stat-row">
-          <span>Time window violations</span>
+          <span id="stat-violations-label"></span>
           <span class="fg-stat-value" id="stat-violations"></span>
         </div>
       </div>
@@ -85,7 +96,7 @@ function priorityBadgeClass(priority: Customer['priority']): string {
 
 function formatWindow(customer: Customer): string {
   if (!customer.windowOpen || !customer.windowClose) {
-    return 'no time window';
+    return messages[lang].popupNoTimeWindow;
   }
   return `${customer.windowOpen}–${customer.windowClose}`;
 }
@@ -101,6 +112,11 @@ function popupHtml(customer: Customer): string {
   `;
 }
 
+function repPopupHtml(rep: SalesRep): string {
+  return `<div class="fg-popup"><strong>${rep.name}</strong><div class="fg-popup-meta">${messages[lang].popupHomeBase}</div></div>`;
+}
+
+const customerMarkers = new Map<number, L.CircleMarker>();
 for (const customer of CUSTOMERS) {
   const marker = L.circleMarker([customer.lat, customer.lng], {
     radius: 6,
@@ -110,6 +126,7 @@ for (const customer of CUSTOMERS) {
     fillOpacity: customer.active ? 0.9 : 0.35,
   }).addTo(map);
   marker.bindPopup(popupHtml(customer));
+  customerMarkers.set(customer.id, marker);
 }
 
 const homeIcon = (repId: number) =>
@@ -120,13 +137,41 @@ const homeIcon = (repId: number) =>
     iconAnchor: [11, 11],
   });
 
+const repMarkers = new Map<number, L.Marker>();
 for (const rep of SALES_REPS) {
-  L.marker([rep.lat, rep.lng], { icon: homeIcon(rep.id) })
+  const marker = L.marker([rep.lat, rep.lng], { icon: homeIcon(rep.id) })
     .addTo(map)
-    .bindPopup(`<div class="fg-popup"><strong>${rep.name}</strong><div class="fg-popup-meta">home base</div></div>`);
+    .bindPopup(repPopupHtml(rep));
+  repMarkers.set(rep.id, marker);
+}
+
+function refreshPopups(): void {
+  for (const customer of CUSTOMERS) {
+    customerMarkers.get(customer.id)?.setPopupContent(popupHtml(customer));
+  }
+  for (const rep of SALES_REPS) {
+    repMarkers.get(rep.id)?.setPopupContent(repPopupHtml(rep));
+  }
 }
 
 // -- Controls ---------------------------------------------------------------
+
+const headerTitle = document.querySelector<HTMLHeadingElement>('#header-title')!;
+const headerSubtitle = document.querySelector<HTMLParagraphElement>('#header-subtitle')!;
+const repLabel = document.querySelector<HTMLLabelElement>('#rep-label')!;
+const allActiveLabel = document.querySelector<HTMLLabelElement>('#all-active-label')!;
+const customersLabel = document.querySelector<HTMLLabelElement>('#customers-label')!;
+const legendNaiveLabel = document.querySelector<HTMLSpanElement>('#legend-naive-label')!;
+const legendOptimizedLabel = document.querySelector<HTMLSpanElement>('#legend-optimized-label')!;
+const statTitle = document.querySelector<HTMLHeadingElement>('#stat-title')!;
+const statNaiveLabel = document.querySelector<HTMLSpanElement>('#stat-naive-label')!;
+const statOptimizedLabel = document.querySelector<HTMLSpanElement>('#stat-optimized-label')!;
+const statImprovementLabel = document.querySelector<HTMLSpanElement>('#stat-improvement-label')!;
+const statPassesLabel = document.querySelector<HTMLSpanElement>('#stat-passes-label')!;
+const statViolationsLabel = document.querySelector<HTMLSpanElement>('#stat-violations-label')!;
+const langEnButton = document.querySelector<HTMLButtonElement>('#lang-en')!;
+const langEsButton = document.querySelector<HTMLButtonElement>('#lang-es')!;
+const langToggle = document.querySelector<HTMLDivElement>('.fg-lang-toggle')!;
 
 const repSelect = document.querySelector<HTMLSelectElement>('#rep-select')!;
 const allActiveCheckbox = document.querySelector<HTMLInputElement>('#all-active')!;
@@ -138,6 +183,46 @@ const statOptimized = document.querySelector<HTMLSpanElement>('#stat-optimized')
 const statImprovement = document.querySelector<HTMLSpanElement>('#stat-improvement')!;
 const statPasses = document.querySelector<HTMLSpanElement>('#stat-passes')!;
 const statViolations = document.querySelector<HTMLSpanElement>('#stat-violations')!;
+
+function applyTranslations(): void {
+  const m = messages[lang];
+  document.title = m.pageTitle;
+  document.documentElement.lang = lang;
+  headerTitle.textContent = m.headerTitle;
+  headerSubtitle.textContent = m.headerSubtitle;
+  repLabel.textContent = m.repLabel;
+  allActiveLabel.textContent = m.allActiveLabel;
+  customersLabel.textContent = m.customersLabel;
+  computeButton.textContent = m.computeButton;
+  legendNaiveLabel.textContent = m.legendNaive;
+  legendOptimizedLabel.textContent = m.legendOptimized;
+  statTitle.textContent = m.statTitle;
+  statNaiveLabel.textContent = m.statNaiveLabel;
+  statOptimizedLabel.textContent = m.statOptimizedLabel;
+  statImprovementLabel.textContent = m.statImprovementLabel;
+  statPassesLabel.textContent = m.statPassesLabel;
+  statViolationsLabel.textContent = m.statViolationsLabel;
+  langToggle.setAttribute('aria-label', m.langToggleAriaLabel);
+  langEnButton.classList.toggle('active', lang === 'en');
+  langEnButton.setAttribute('aria-pressed', String(lang === 'en'));
+  langEsButton.classList.toggle('active', lang === 'es');
+  langEsButton.setAttribute('aria-pressed', String(lang === 'es'));
+}
+
+function setLang(next: Lang): void {
+  if (lang === next) {
+    return;
+  }
+  lang = next;
+  persistLang(lang);
+  applyTranslations();
+  refreshPopups();
+}
+
+langEnButton.addEventListener('click', () => setLang('en'));
+langEsButton.addEventListener('click', () => setLang('es'));
+
+applyTranslations();
 
 for (const rep of SALES_REPS) {
   const option = document.createElement('option');
